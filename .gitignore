@@ -1,3 +1,5 @@
+*.drawio.bkp
+
 # Compiled class file
 *.class
 
