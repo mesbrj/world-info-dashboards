@@ -1,0 +1,47 @@
+apiVersion: 1
+
+datasources:
+  # SkyWalking as primary observability platform
+  - name: SkyWalking
+    type: skywalking-datasource
+    url: http://skywalking-oap:12800
+    access: proxy
+    isDefault: true
+    jsonData:
+      # Enable trace to metrics correlation
+      traceToMetrics: true
+      # Enable trace to logs correlation  
+      traceToLogs: true
+
+  # Prometheus for metrics
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    access: proxy
+    isDefault: false
+    jsonData:
+      timeInterval: 15s
+      httpMethod: POST
+    
+  # Loki for logs
+  - name: Loki
+    type: loki
+    url: http://loki:3100
+    access: proxy
+    isDefault: false
+    jsonData:
+      # Correlation settings
+      derivedFields:
+        - name: TraceID
+          matcherRegex: "trace_id=([\\w]+)"
+          url: "http://localhost:3000/explore?orgId=1&left=[\"now-1h\",\"now\",\"SkyWalking\",{\"queryType\":\"trace\",\"refId\":\"A\",\"traceId\":\"${__value.raw}\"}]"
+          datasourceUid: "skywalking"
+
+  # Grafana Alloy for monitoring the collector
+  - name: Alloy
+    type: prometheus
+    url: http://grafana-alloy:12345
+    access: proxy
+    isDefault: false
+    jsonData:
+      timeInterval: 30s

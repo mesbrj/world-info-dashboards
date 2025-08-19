@@ -1,0 +1,179 @@
+// Grafana Alloy Configuration for OpenTelemetry and Loki integration
+
+logging {
+  level  = "info"
+  format = "logfmt"
+}
+
+//
+// OpenTelemetry Receivers
+//
+
+// OTLP gRPC receiver
+otelcol.receiver.otlp "default" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+  
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+// Jaeger receiver for compatibility
+otelcol.receiver.jaeger "default" {
+  protocols {
+    thrift_http {
+      endpoint = "0.0.0.0:14268"
+    }
+  }
+
+  output {
+    traces = [otelcol.processor.batch.default.input]
+  }
+}
+
+//
+// OpenTelemetry Processors
+//
+
+// Batch processor to reduce network overhead
+otelcol.processor.batch "default" {
+  output {
+    metrics = [otelcol.exporter.otlp.skywalking.input]
+    logs    = [otelcol.exporter.loki.default.input]
+    traces  = [otelcol.exporter.otlp.skywalking.input]
+  }
+}
+
+// Resource processor to add additional attributes
+otelcol.processor.resource "default" {
+  attributes {
+    action = "upsert"
+    key    = "environment"
+    value  = "docker"
+  }
+  
+  attributes {
+    action = "upsert"
+    key    = "cluster"
+    value  = "world-info-dashboards"
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.default.input]
+    logs    = [otelcol.processor.batch.default.input]
+    traces  = [otelcol.processor.batch.default.input]
+  }
+}
+
+//
+// OpenTelemetry Exporters
+//
+
+// Export to SkyWalking
+otelcol.exporter.otlp "skywalking" {
+  client {
+    endpoint = "http://skywalking-oap:11800"
+    tls {
+      insecure = true
+    }
+  }
+}
+
+// Export logs to Loki
+otelcol.exporter.loki "default" {
+  endpoint = "http://loki:3100/loki/api/v1/push"
+  
+  default_labels = {
+    cluster = "world-info-dashboards",
+    environment = "docker",
+  }
+}
+
+//
+// Loki Components for Log Collection
+//
+
+// Discover log files
+discovery.file "logs" {
+  path_targets = [{
+    __path__ = "/var/log/*.log",
+  }]
+}
+
+// Read log files
+loki.source.file "logs" {
+  targets    = discovery.file.logs.targets
+  forward_to = [loki.process.logs.receiver]
+}
+
+// Process logs
+loki.process.logs "logs" {
+  stage.json {
+    expressions = {
+      timestamp = "timestamp",
+      level     = "level",
+      message   = "message",
+      service   = "service",
+      trace_id  = "trace_id",
+      span_id   = "span_id",
+    }
+  }
+
+  stage.labels {
+    values = {
+      level   = "level",
+      service = "service",
+    }
+  }
+
+  stage.timestamp {
+    source = "timestamp"
+    format = "RFC3339"
+  }
+
+  forward_to = [loki.write.logs.receiver]
+}
+
+// Write logs to Loki
+loki.write "logs" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+//
+// Prometheus Components for Metrics Collection
+//
+
+// SkyWalking OAP metrics
+prometheus.scrape "skywalking_oap" {
+  targets = [{
+    __address__ = "skywalking-oap:1234",
+  }]
+  forward_to = [prometheus.remote_write.default.receiver]
+}
+
+// Java Producer metrics (if using Micrometer)
+prometheus.scrape "java_producer" {
+  targets = [{
+    __address__ = "java-producer:8080",
+  }]
+  scrape_interval = "15s"
+  metrics_path    = "/actuator/prometheus"
+  forward_to      = [prometheus.remote_write.default.receiver]
+}
+
+// Remote write to Prometheus (optional - you can also use SkyWalking metrics)
+prometheus.remote_write "default" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}

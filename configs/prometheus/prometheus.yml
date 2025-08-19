@@ -1,0 +1,42 @@
+# Prometheus Configuration
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  # - "first_rules.yml"
+  # - "second_rules.yml"
+
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # SkyWalking OAP metrics
+  - job_name: 'skywalking-oap'
+    static_configs:
+      - targets: ['skywalking-oap:1234']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # Java Producer metrics
+  - job_name: 'java-producer'
+    static_configs:
+      - targets: ['java-producer:8080']
+    scrape_interval: 15s
+    metrics_path: /actuator/prometheus
+
+  # Grafana Alloy metrics
+  - job_name: 'grafana-alloy'
+    static_configs:
+      - targets: ['grafana-alloy:12345']
+    scrape_interval: 30s
+    metrics_path: /metrics
+
+  # RabbitMQ metrics (if enabled)
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+    scrape_interval: 30s
+    metrics_path: /metrics

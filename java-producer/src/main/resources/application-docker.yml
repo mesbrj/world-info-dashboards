@@ -1,0 +1,18 @@
+spring:
+  profiles:
+    active: docker
+  rabbitmq:
+    host: ${RABBITMQ_HOST:rabbitmq}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:worldinfo_user}
+    password: ${RABBITMQ_PASSWORD:change_this_rabbitmq_password}
+
+logging:
+  level:
+    com.worldinfo: INFO
+    org.springframework.amqp: WARN
+    root: WARN
+
+app:
+  scheduler:
+    enabled: true

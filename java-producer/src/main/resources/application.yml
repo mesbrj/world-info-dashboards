@@ -1,0 +1,75 @@
+spring:
+  application:
+    name: java-producer
+  
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:worldinfo_user}
+    password: ${RABBITMQ_PASSWORD:change_this_rabbitmq_password}
+    connection-timeout: 30000
+    virtual-host: /
+    
+  jackson:
+    time-zone: UTC
+    date-format: "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
+    serialization:
+      write-dates-as-timestamps: false
+
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,openapi,swagger-ui
+  endpoint:
+    health:
+      show-details: always
+    metrics:
+      enabled: true
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+      environment: ${spring.profiles.active:default}
+
+# OpenTelemetry configuration
+otel:
+  instrumentation:
+    spring-rabbit:
+      enabled: true
+    logback-appender:
+      enabled: true
+  resource:
+    attributes:
+      service.name: ${OTEL_SERVICE_NAME:java-producer}
+      service.version: ${OTEL_SERVICE_VERSION:1.0.0}
+      deployment.environment: ${spring.profiles.active:default}
+
+# Application specific configuration
+app:
+  scheduler:
+    enabled: true
+  tracing:
+    enabled: true
+
+# Logging configuration
+logging:
+  level:
+    com.worldinfo: DEBUG
+    org.springframework.amqp: INFO
+    io.opentelemetry: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId:-},%X{spanId:-}] %logger{36} - %msg%n"
+  file:
+    name: /app/logs/java-producer.log
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
