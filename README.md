@@ -2,11 +2,11 @@
 ![](./docs/world-info-dashboards.png)
 
 
-- A distributed-system for World information retrieval, processing and management (weather, clock, geolocation, local information, conversion, etc.).
+- A distributed-system for World information retrieval, processing and management (weather, time-zone, geolocation, local information, conversion, etc.).
 >
 - JSON-RPC V1 (for simplicity and ease of use) using RabbitMQ asynchronous queues for RPC communication.
 >
-- Java Spring web service and HTTP SSE server using Authorization Server leveraging Ory Hydra for OAuth 2.0 and OpenID Connect. Hazelcast for distributed caching and in-memory data grid. RPC server skeleton.
+- Java Spring web service (JSON-RPC server skeleton) and HTTP SSE server. Resource Server leveraging Ory Hydra for OAuth 2.0. Hazelcast for distributed caching and in-memory data grid.
 >
 - Java RPC server implementation (world_info namespace) using Spring Boot for Web Services, MongoDB for data persistence and Hazelcast for real-time in-memory data grid and distributed caching.
 >
